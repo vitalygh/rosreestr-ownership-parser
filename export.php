@@ -32,6 +32,7 @@ while($row = $statement->fetch(PDO::FETCH_ASSOC)){
     $totalCounter++;
     $data = [
         $row['cadastral_no'],
+        $row['task_rosreestr_id'],
         $row['ownership'],
         $row['owner_name'],
         $row['area'],

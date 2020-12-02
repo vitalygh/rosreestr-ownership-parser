@@ -15,7 +15,7 @@ $egrn = new IR_EGRN($config);
 
 // find request older than two days
 $statement = $dbh->query('
-    SELECT * FROM task
+    SELECT * FROM task, premise WHERE task.premise_id = premise.premise_id
 ');
 $deleteStatement = $dbh->prepare('
     DELETE FROM task WHERE task_id = :task_id
@@ -23,6 +23,7 @@ $deleteStatement = $dbh->prepare('
 $updateStatement = $dbh->prepare('
     UPDATE premise
     SET area = :area,
+        task_rosreestr_id = :task_rosreestr_id,
         ownership = :ownership,
         owner_name = :owner_name,
         xml = :xml
@@ -42,13 +43,18 @@ while($row = $statement->fetch(PDO::FETCH_ASSOC)){
         if($zipFile){
             $xmlFile = $egrn->parseZipArchive($zipFile);
             $result = $egrn->parseXMLFile($xmlFile);
+            $xmlpath = __DIR__ . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . strtr($row['cadastral_no'], ":", "_") . '.xml';
+            print "Сохраняем результат в " . $xmlpath . PHP_EOL;
+            file_put_contents($xmlpath, $result->xml);
             $update = $updateStatement->execute([
                 ':area' => $result->area,
+                ':task_rosreestr_id' => $row['rosreestr_id'],
                 ':ownership' => implode("\r\n", $result->ownership),
                 ':owner_name' => implode("\r\n", $result->names),
                 ':xml' => $result->xml,
                 ':premise_id' => $row['premise_id'],
             ]);
+            print "Удаляем выполненную заявку №" . $row['rosreestr_id'] . PHP_EOL;
             $detele = $deleteStatement->execute([
                 ':task_id' => $row['task_id'],
             ]);

@@ -9,7 +9,7 @@ if(!isset($argv[1]) || $argv[1] == '--help'){
     print "csv-файл должен быть без строки-заголовка, только данные." . PHP_EOL;
     print PHP_EOL;
     print "Порядок колонок в файле подразумевается следующий:" . PHP_EOL;
-    print "Кадастровый номер, Номер собственности, ФИО, Площадь, Любые другие данные;" . PHP_EOL;
+    print "Кадастровый номер, Номер заявки, Номер собственности, ФИО, Площадь, Любые другие данные;" . PHP_EOL;
     print "Обязателен только кадастровый номер." . PHP_EOL;
     print PHP_EOL;
     print "Usage: php import.php filename.csv" . PHP_EOL;
@@ -23,7 +23,7 @@ if(!is_readable($fileImport)){
 }
 
 $dbh = getDBH($config);
-
+/*
 $statement = $dbh->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=:table");
 $statement->execute([
     ':table' => 'premise',
@@ -35,19 +35,21 @@ if($statement->fetch()){
     print "Импорт данных возможен только в пустую базу." . PHP_EOL;
     exit;
 }
-$result = $dbh->query('create table premise
+*/
+$result = $dbh->query('create table if not exists premise
 (
 	premise_id integer not null
 		constraint premise_pk
 			primary key autoincrement,
 	cadastral_no text not null,
+	task_rosreestr_id text,
 	area real,
 	ownership text,
 	owner_name text,
 	extradata text,
 	xml text
 )');
-$result = $result && $dbh->query('create table task
+$result = $result && $dbh->query('create table if not exists task
 (
 	task_id integer not null
 		constraint task_pk
@@ -58,9 +60,9 @@ $result = $result && $dbh->query('create table task
     date_added bigint,
 	rosreestr_id text
 )');
-$result = $result && $dbh->query('create unique index premise_cadastral_no_uindex
+$result = $result && $dbh->query('create unique index if not exists premise_cadastral_no_uindex
 	on premise (cadastral_no)');
-$result = $result && $dbh->query('create index task_premise_id_index
+$result = $result && $dbh->query('create index if not exists task_premise_id_index
 	on task (premise_id);
 ');
 if(!$result){
@@ -75,8 +77,8 @@ $fh = fopen($fileImport, 'rb');
 while($row = fgetcsv($fh)){
     $totalCounter++;
     $statement = $dbh->prepare('
-        INSERT INTO premise (cadastral_no, ownership, owner_name, area, extradata)
-        VALUES (:cadastral_no, :ownership, :owner_name, :area, :extradata)
+        INSERT OR REPLACE INTO premise (cadastral_no, task_rosreestr_id, ownership, owner_name, area, extradata)
+        VALUES (:cadastral_no, :task_rosreestr_id, :ownership, :owner_name, :area, :extradata)
     ');
     $area = $row[3] ?? null;
     if($area){
@@ -88,8 +90,9 @@ while($row = fgetcsv($fh)){
     }
     if(!$statement->execute([
         ':cadastral_no' => $row[0],
-        ':ownership' => $row[1] ?? null,
-        ':owner_name' => $row[2] ?? null,
+        ':task_rosreestr_id' => $row[1] ?? null,
+        ':ownership' => $row[2] ?? null,
+        ':owner_name' => $row[3] ?? null,
         ':area' => $area,
         ':extradata' => json_encode($extra),
     ])){

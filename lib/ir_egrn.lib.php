@@ -337,6 +337,7 @@ class IR_EGRN{
         $result = new Ownership();
         $result->xml = $data;
 
+        /*
         $xml = simplexml_load_string($data);
         $result->cadastralNo = (string)$xml->Realty->Flat['CadastralNumber'];
         $area = (string)$xml->Realty->Flat->Area;
@@ -358,6 +359,7 @@ class IR_EGRN{
             }
             $result->names[] = implode("\n", $ownerNames);
         }
+        */
 
         @unlink($fileName);
 

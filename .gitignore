@@ -54,3 +54,6 @@ themes/classic/views/
 
 # local config
 config.local.php
+
+php/
+*.cmd
